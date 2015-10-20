@@ -1,71 +1,94 @@
+variable "access_key" {}
+variable "secret_key" {}
+
 provider "aws" {
-  access_key = "nope"
-  secret_key = "nope"
+  access_key = "${var.access_key}"
+  secret_key = "${var.secret_key}"
   region     = "eu-west-1"
 }
 
-resource "aws_vpc" "test-1" {
+resource "aws_vpc" "fltest" {
   cidr_block = "10.0.0.0/16"
   enable_dns_support = true
   enable_dns_hostnames = true
+
   tags {
-    Name = "test-1"
+    Name = "fltest"
   }
 }
 
-resource "aws_internet_gateway" "test-1-gw" {
-  vpc_id = "${aws_vpc.test-1.id}"
+resource "aws_internet_gateway" "fltest-gw" {
+  vpc_id = "${aws_vpc.fltest.id}"
 
   tags {
-    Name = "test-1-gw"
+    Name = "fltest-gw"
   }
 }
 
-resource "aws_subnet" "test-1a-pub" {
-  vpc_id                  = "${aws_vpc.test-1.id}"
+resource "aws_subnet" "fltest-pub-a" {
+  vpc_id                  = "${aws_vpc.fltest.id}"
   availability_zone       = "eu-west-1a"
   cidr_block              = "10.0.0.0/24"
   map_public_ip_on_launch = true
 
   tags {
-    Name = "test-1a-pub"
+    Name = "fltest-pub-a"
   }
 }
 
-resource "aws_route_table" "test-1-pub" {
-  vpc_id = "${aws_vpc.test-1.id}"
+resource "aws_route_table" "fltest-pub-a" {
+  vpc_id = "${aws_vpc.fltest.id}"
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = "${aws_internet_gateway.test-1-gw.id}"
+    gateway_id = "${aws_internet_gateway.fltest-gw.id}"
   }
   tags {
-    Name = "test-1-pub"
+    Name = "fltest-pub"
   }
 }
 
-resource "aws_route_table_association" "test-1-pub" {
-  subnet_id = "${aws_subnet.test-1a-pub.id}"
-  route_table_id = "${aws_route_table.test-1-pub.id}"
+resource "aws_route_table_association" "fltest-pub-a" {
+  subnet_id = "${aws_subnet.fltest-pub-a.id}"
+  route_table_id = "${aws_route_table.fltest-pub-a.id}"
 }
 
-resource "aws_route_table" "test-1-pri" {
-  vpc_id = "${aws_vpc.test-1.id}"
+resource "aws_instance" "fltest-nat-01a" {
+  # amzn-ami-vpc-nat-hvm-2014.09.1.x86_64-gp2
+  ami = "ami-14913f63"
+  availability_zone = "a"
+  subnet_id = "${aws_subnet.fltest-pub-a.id}"
+  instance_type = "t1.micro"
+  associate_public_ip_address = true
+  # Allow traffic not destined for the NAT to be routed to it
+  source_dest_check = false
+
   tags {
-    Name = "test-1-pri"
+    Name = "fltest-nat-01a"
   }
 }
 
-resource "aws_route_table_association" "test-1-pri" {
-  subnet_id = "${aws_subnet.test-1a-pri.id}"
-  route_table_id = "${aws_route_table.test-1-pri.id}"
-}
-
-resource "aws_subnet" "test-1a-pri" {
-  vpc_id            = "${aws_vpc.test-1.id}"
+resource "aws_subnet" "fltest-int-a" {
+  vpc_id            = "${aws_vpc.fltest.id}"
   availability_zone = "eu-west-1a"
   cidr_block        = "10.0.10.0/24"
 
   tags {
-    Name = "test-1a-pri"
+    Name = "fltest-int-a"
   }
+}
+
+resource "aws_route_table" "fltest-int-a" {
+  vpc_id = "${aws_vpc.fltest.id}"
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = "${aws_instance.fltest-nat-01a.id}"
+  }
+  tags {
+    Name = "fltest-int"
+  }
+}
+
+resource "aws_route_table_association" "fltest-int-a" {
+  subnet_id = "${aws_subnet.fltest-int-a.id}"
+  route_table_id = "${aws_route_table.fltest-int-a.id}"
 }
