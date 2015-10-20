@@ -2,4 +2,4 @@ language: bash
 script: echo hello
 notifications:
   webhooks:
-    - https://a4bc15b1.ngrok.io/notifications?token=10FxKriDwam-PksnISTV9Q
+    - https://fl-travis-listener.herokuapp.com?token=10FxKriDwam-PksnISTV9Q
