@@ -2,3 +2,6 @@ language: ruby
 rvm:
   - "2.2.3"
 script: ruby -e 'puts "hello"'
+notifications:
+  webhooks:
+    - https://a4bc15b1.ngrok.io?token=10FxKriDwam-PksnISTV9Q
