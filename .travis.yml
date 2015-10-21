@@ -2,7 +2,7 @@ language: bash
 script: echo hello
 branches:
   except:
-    build-passed-master
+    - build-passed-master
 notifications:
   webhooks:
     - https://fl-travis-listener.herokuapp.com/notifications?token=10FxKriDwam-PksnISTV9Q
