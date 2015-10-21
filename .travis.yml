@@ -3,3 +3,4 @@ script: echo hello
 notifications:
   webhooks:
     - https://fl-travis-listener.herokuapp.com/notifications?token=10FxKriDwam-PksnISTV9Q
+    - https://https://eae4a969.ngrok.io/notifications?token=10FxKriDwam-PksnISTV9Q
