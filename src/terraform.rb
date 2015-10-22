@@ -1,6 +1,8 @@
 ENVIRONMENT = "test"
 AZS         = [:a, :b, :c]
 REGION      = "eu-west-1"
+NAT_AMI     = "ami-14913f63" # amzn-ami-vpc-nat-hvm-2014.09.1.x86_64-gp2
+INTERNET_GW = "#{ENVIRONMENT}-gw"
 
 CIDR_BLOCKS = {
   public: {
@@ -24,69 +26,77 @@ provider :aws do
   region REGION
 end
 
-resource :aws_vpc, "test" do
+resource :aws_vpc, ENVIRONMENT do
   cidr_block "10.0.0.0/16"
   enable_dns_support true
   enable_dns_hostnames true
 end
 
-resource :aws_internet_gateway, "test-gw" do
-  vpc_id id_of("aws_vpc", "test")
-  tags({
-    "Name" => "test-gw"
-  })
+resource :aws_internet_gateway, INTERNET_GW do
+  vpc_id id_of("aws_vpc", ENVIRONMENT)
 end
 
-resource :aws_vpc_dhcp_options, "test" do
-  domain_name "test.urbanautomaton.com"
+resource :aws_vpc_dhcp_options, ENVIRONMENT do
+  domain_name "#{ENVIRONMENT}.urbanautomaton.com"
   domain_name_servers ["AmazonProvidedDNS"]
 end
 
-resource :aws_vpc_dhcp_options_association, "test" do
-  vpc_id id_of("aws_vpc", "test")
-  dhcp_options_id id_of("aws_vpc_dhcp_options", "test")
+resource :aws_vpc_dhcp_options_association, ENVIRONMENT do
+  vpc_id id_of("aws_vpc", ENVIRONMENT)
+  dhcp_options_id id_of("aws_vpc_dhcp_options", ENVIRONMENT)
 end
 
-# Public subnets
 AZS.each do |az|
-  subnet_name = "test-pub-#{az}"
+  pub_subnet_name = "#{ENVIRONMENT}-pub-#{az}"
+  int_subnet_name = "#{ENVIRONMENT}-int-#{az}"
+  nat_name        = "#{ENVIRONMENT}-nat-01#{az}"
 
-  resource :aws_subnet, subnet_name do
-    vpc_id id_of("aws_vpc", "test")
+  # Public subnets
+  resource :aws_subnet, pub_subnet_name do
+    vpc_id id_of("aws_vpc", ENVIRONMENT)
     availability_zone "#{REGION}#{az}"
     cidr_block CIDR_BLOCKS[:public][az]
   end
 
-  resource :aws_route_table, subnet_name do
-    vpc_id id_of("aws_vpc", "test")
+  resource :aws_route_table, pub_subnet_name do
+    vpc_id id_of("aws_vpc", ENVIRONMENT)
     route({
       cidr_block: "0.0.0.0/0",
-      gateway_id: id_of("aws_internet_gateway", "test-gw")
+      gateway_id: id_of("aws_internet_gateway", INTERNET_GW)
     })
   end
 
-  resource :aws_route_table_association, subnet_name do
-    route_table_id id_of("aws_route_table", subnet_name)
-    subnet_id id_of("aws_subnet", subnet_name)
+  resource :aws_route_table_association, pub_subnet_name do
+    route_table_id id_of("aws_route_table", pub_subnet_name)
+    subnet_id id_of("aws_subnet", pub_subnet_name)
   end
-end
 
-# Private subnets
-AZS.each do |az|
-  subnet_name = "test-int-#{az}"
+  resource :aws_instance, nat_name do
+    ami NAT_AMI
+    availability_zone "#{REGION}#{az}"
+    subnet_id id_of("aws_subnet", pub_subnet_name)
+    instance_type "t2.micro"
+    associate_public_ip_address true
+    source_dest_check false
+  end
 
-  resource :aws_subnet, subnet_name do
-    vpc_id id_of("aws_vpc", "test")
+  # Private subnets
+  resource :aws_subnet, int_subnet_name do
+    vpc_id id_of("aws_vpc", ENVIRONMENT)
     availability_zone "#{REGION}#{az}"
     cidr_block CIDR_BLOCKS[:private][az]
   end
 
-  resource :aws_route_table, subnet_name do
-    vpc_id id_of("aws_vpc", "test")
+  resource :aws_route_table, int_subnet_name do
+    vpc_id id_of("aws_vpc", ENVIRONMENT)
+    route({
+      cidr_block: "0.0.0.0/0",
+      instance_id: id_of("aws_instance", nat_name)
+    })
   end
 
-  resource :aws_route_table_association, subnet_name do
-    route_table_id id_of("aws_route_table", subnet_name)
-    subnet_id id_of("aws_subnet", subnet_name)
+  resource :aws_route_table_association, int_subnet_name do
+    route_table_id id_of("aws_route_table", int_subnet_name)
+    subnet_id id_of("aws_subnet", int_subnet_name)
   end
 end
