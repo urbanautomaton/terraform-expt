@@ -12,7 +12,10 @@ $(OUT_DIR)/terraform.tf: $(SRC_DIR)/terraform.rb
 	$(TERRAFRAME) -f $< -p > $@
 
 plan: $(TF_SRC)
-	$(TERRAFORM) plan -refresh -state $(STATE_FILE) $(OUT_DIR)
+	$(TERRAFORM) plan -refresh -state=$(STATE_FILE) $(OUT_DIR)
 
 apply: $(TF_SRC)
-	$(TERRAFORM) apply -refresh -state $(STATE_FILE) $(OUT_DIR)
+	$(TERRAFORM) apply -refresh -state=$(STATE_FILE) $(OUT_DIR)
+
+show: $(TF_SRC)
+	$(TERRAFORM) show $(STATE_FILE)
