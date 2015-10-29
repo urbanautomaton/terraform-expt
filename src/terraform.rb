@@ -4,6 +4,19 @@ REGION      = "eu-west-1"
 NAT_AMI     = "ami-14913f63" # amzn-ami-vpc-nat-hvm-2014.09.1.x86_64-gp2
 INTERNET_GW = "#{ENVIRONMENT}-gw"
 
+CIDR_BLOCKS = {
+  public: {
+    a: '10.0.0.0/24',
+    b: '10.0.1.0/24',
+    c: '10.0.2.0/24',
+  },
+  private: {
+    a: '10.0.10.0/24',
+    b: '10.0.11.0/24',
+    c: '10.0.12.0/24',
+  }
+}
+
 module SG
   class << self
     def allow_http(source)
@@ -31,19 +44,6 @@ module SG
     end
   end
 end
-
-CIDR_BLOCKS = {
-  public: {
-    a: '10.0.0.0/24',
-    b: '10.0.1.0/24',
-    c: '10.0.2.0/24',
-  },
-  private: {
-    a: '10.0.10.0/24',
-    b: '10.0.11.0/24',
-    c: '10.0.12.0/24',
-  }
-}
 
 variable(:access_key, {})
 variable(:secret_key, {})
