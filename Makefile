@@ -7,7 +7,7 @@ STATE_FILE := $(STATE_DIR)/terraform.tfstate
 TERRAFORM  := terraform
 TERRAFRAME := .bin/terraframe
 
-.PHONY: plan apply show clean
+.PHONY: plan apply show destroy clean
 
 $(OUT_DIR)/terraform.tf: $(SRC_DIR)/terraform.rb
 	mkdir -p $(OUT_DIR)
@@ -23,6 +23,9 @@ apply: $(TF_SRC)
 
 show: $(TF_SRC)
 	$(TERRAFORM) show $(STATE_FILE)
+
+destroy: $(TF_SRC)
+	$(TERRAFORM) destroy -refresh -state=$(STATE_FILE) $(OUT_DIR)
 
 clean:
 	rm -f out/*
